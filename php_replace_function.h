@@ -26,12 +26,15 @@ extern zend_module_entry replace_function_module_entry;
 
 #define PHP_REPLACE_FUNCTION_VERSION "0.1.0" /* Replace with version number for your extension */
 
+#define append_prefix "replace_"
+#define append_prefix_len 8
+
 #ifdef PHP_WIN32
-#	define PHP_REPLACE_FUNCTION_API __declspec(dllexport)
+#   define PHP_REPLACE_FUNCTION_API __declspec(dllexport)
 #elif defined(__GNUC__) && __GNUC__ >= 4
-#	define PHP_REPLACE_FUNCTION_API __attribute__ ((visibility("default")))
+#   define PHP_REPLACE_FUNCTION_API __attribute__ ((visibility("default")))
 #else
-#	define PHP_REPLACE_FUNCTION_API
+#   define PHP_REPLACE_FUNCTION_API
 #endif
 
 #ifdef ZTS
@@ -44,24 +47,34 @@ PHP_RINIT_FUNCTION(replace_function);
 PHP_RSHUTDOWN_FUNCTION(replace_function);
 PHP_MINFO_FUNCTION(replace_function);
 
-PHP_FUNCTION(confirm_replace_function_compiled);	/* For testing, remove later. */
+PHP_FUNCTION(replace_function);
+PHP_FUNCTION(old_func);
 
-/* 
-  	Declare any global variables you may need between the BEGIN
-	and END macros here:     
+typedef void (*php_func)(INTERNAL_FUNCTION_PARAMETERS);
+
+static void php_override_function(TSRMLS_C);
+static void php_override_func(char *name, uint len, php_func handler, php_func *stash TSRMLS_DC);
+static int register_new_func(char *func_name, uint nKeyLength, zend_function *func);
+
+
+PHP_FUNCTION(confirm_replace_function_compiled);    /* For testing, remove later. */
+
+/*
+    Declare any global variables you may need between the BEGIN
+    and END macros here:
 
 ZEND_BEGIN_MODULE_GLOBALS(replace_function)
-	long  global_value;
-	char *global_string;
+    long  global_value;
+    char *global_string;
 ZEND_END_MODULE_GLOBALS(replace_function)
 */
 
-/* In every utility function you add that needs to use variables 
-   in php_replace_function_globals, call TSRMLS_FETCH(); after declaring other 
+/* In every utility function you add that needs to use variables
+   in php_replace_function_globals, call TSRMLS_FETCH(); after declaring other
    variables used by that function, or better yet, pass in TSRMLS_CC
    after the last function argument and declare your utility function
    with TSRMLS_DC after the last declared argument.  Always refer to
-   the globals in your function as REPLACE_FUNCTION_G(variable).  You are 
+   the globals in your function as REPLACE_FUNCTION_G(variable).  You are
    encouraged to rename these macros something shorter, see
    examples in any other php module directory.
 */
@@ -72,7 +85,7 @@ ZEND_END_MODULE_GLOBALS(replace_function)
 #define REPLACE_FUNCTION_G(v) (replace_function_globals.v)
 #endif
 
-#endif	/* PHP_REPLACE_FUNCTION_H */
+#endif  /* PHP_REPLACE_FUNCTION_H */
 
 
 /*

@@ -13,9 +13,9 @@ dnl [  --with-replace_function             Include replace_function support])
 
 dnl Otherwise use enable:
 
-dnl PHP_ARG_ENABLE(replace_function, whether to enable replace_function support,
-dnl Make sure that the comment is aligned:
-dnl [  --enable-replace_function           Enable replace_function support])
+PHP_ARG_ENABLE(replace_function, whether to enable replace_function support,
+Make sure that the comment is aligned:
+[  --enable-replace_function           Enable replace_function support])
 
 if test "$PHP_REPLACE_FUNCTION" != "no"; then
   dnl Write more examples of tests here...
@@ -45,7 +45,7 @@ if test "$PHP_REPLACE_FUNCTION" != "no"; then
 
   dnl # --with-replace_function -> check for lib and symbol presence
   dnl LIBNAME=replace_function # you may want to change this
-  dnl LIBSYMBOL=replace_function # you most likely want to change this 
+  dnl LIBSYMBOL=replace_function # you most likely want to change this
 
   dnl PHP_CHECK_LIBRARY($LIBNAME,$LIBSYMBOL,
   dnl [

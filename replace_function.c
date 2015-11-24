@@ -34,13 +34,18 @@ ZEND_DECLARE_MODULE_GLOBALS(replace_function)
 /* True global resources - no need for thread safety here */
 static int le_replace_function;
 
+static php_func t_func;
+
+HashTable *stash_func;
+
 /* {{{ replace_function_functions[]
  *
  * Every user visible function must have an entry in replace_function_functions[].
  */
 const zend_function_entry replace_function_functions[] = {
-	PHP_FE(confirm_replace_function_compiled,	NULL)		/* For testing, remove later. */
-	PHP_FE_END	/* Must be the last line in replace_function_functions[] */
+    PHP_FE(confirm_replace_function_compiled,   NULL)       /* For testing, remove later. */
+    PHP_FE(replace_function, NULL)
+    PHP_FE_END  /* Must be the last line in replace_function_functions[] */
 };
 /* }}} */
 
@@ -48,19 +53,19 @@ const zend_function_entry replace_function_functions[] = {
  */
 zend_module_entry replace_function_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
-	STANDARD_MODULE_HEADER,
+    STANDARD_MODULE_HEADER,
 #endif
-	"replace_function",
-	replace_function_functions,
-	PHP_MINIT(replace_function),
-	PHP_MSHUTDOWN(replace_function),
-	PHP_RINIT(replace_function),		/* Replace with NULL if there's nothing to do at request start */
-	PHP_RSHUTDOWN(replace_function),	/* Replace with NULL if there's nothing to do at request end */
-	PHP_MINFO(replace_function),
+    "replace_function",
+    replace_function_functions,
+    PHP_MINIT(replace_function),
+    PHP_MSHUTDOWN(replace_function),
+    PHP_RINIT(replace_function),        /* Replace with NULL if there's nothing to do at request start */
+    PHP_RSHUTDOWN(replace_function),    /* Replace with NULL if there's nothing to do at request end */
+    PHP_MINFO(replace_function),
 #if ZEND_MODULE_API_NO >= 20010901
-	PHP_REPLACE_FUNCTION_VERSION,
+    PHP_REPLACE_FUNCTION_VERSION,
 #endif
-	STANDARD_MODULE_PROPERTIES
+    STANDARD_MODULE_PROPERTIES
 };
 /* }}} */
 
@@ -83,8 +88,8 @@ PHP_INI_END()
 /* Uncomment this function if you have INI entries
 static void php_replace_function_init_globals(zend_replace_function_globals *replace_function_globals)
 {
-	replace_function_globals->global_value = 0;
-	replace_function_globals->global_string = NULL;
+    replace_function_globals->global_value = 0;
+    replace_function_globals->global_string = NULL;
 }
 */
 /* }}} */
@@ -93,10 +98,10 @@ static void php_replace_function_init_globals(zend_replace_function_globals *rep
  */
 PHP_MINIT_FUNCTION(replace_function)
 {
-	/* If you have INI entries, uncomment these lines 
-	REGISTER_INI_ENTRIES();
-	*/
-	return SUCCESS;
+    /* If you have INI entries, uncomment these lines
+    REGISTER_INI_ENTRIES();
+    */
+    return SUCCESS;
 }
 /* }}} */
 
@@ -104,10 +109,10 @@ PHP_MINIT_FUNCTION(replace_function)
  */
 PHP_MSHUTDOWN_FUNCTION(replace_function)
 {
-	/* uncomment this line if you have INI entries
-	UNREGISTER_INI_ENTRIES();
-	*/
-	return SUCCESS;
+    /* uncomment this line if you have INI entries
+    UNREGISTER_INI_ENTRIES();
+    */
+    return SUCCESS;
 }
 /* }}} */
 
@@ -116,7 +121,11 @@ PHP_MSHUTDOWN_FUNCTION(replace_function)
  */
 PHP_RINIT_FUNCTION(replace_function)
 {
-	return SUCCESS;
+    /*
+    ALLOC_HASHTABLE(stash_func);
+    zend_hash_init(stash_func, 64, NULL, ZVAL_PTR_DTOR, 0);
+    */
+    return SUCCESS;
 }
 /* }}} */
 
@@ -125,7 +134,7 @@ PHP_RINIT_FUNCTION(replace_function)
  */
 PHP_RSHUTDOWN_FUNCTION(replace_function)
 {
-	return SUCCESS;
+    return SUCCESS;
 }
 /* }}} */
 
@@ -133,13 +142,13 @@ PHP_RSHUTDOWN_FUNCTION(replace_function)
  */
 PHP_MINFO_FUNCTION(replace_function)
 {
-	php_info_print_table_start();
-	php_info_print_table_header(2, "replace_function support", "enabled");
-	php_info_print_table_end();
+    php_info_print_table_start();
+    php_info_print_table_header(2, "replace_function support", "enabled");
+    php_info_print_table_end();
 
-	/* Remove comments if you have entries in php.ini
-	DISPLAY_INI_ENTRIES();
-	*/
+    /* Remove comments if you have entries in php.ini
+    DISPLAY_INI_ENTRIES();
+    */
 }
 /* }}} */
 
@@ -153,23 +162,98 @@ PHP_MINFO_FUNCTION(replace_function)
    Return a string to confirm that the module is compiled in */
 PHP_FUNCTION(confirm_replace_function_compiled)
 {
-	char *arg = NULL;
-	int arg_len, len;
-	char *strg;
+    char *arg = NULL;
+    int arg_len, len;
+    char *strg;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &arg, &arg_len) == FAILURE) {
-		return;
-	}
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &arg, &arg_len) == FAILURE) {
+        return;
+    }
 
-	len = spprintf(&strg, 0, "Congratulations! You have successfully modified ext/%.78s/config.m4. Module %.78s is now compiled into PHP.", "replace_function", arg);
-	RETURN_STRINGL(strg, len, 0);
+    len = spprintf(&strg, 0, "Congratulations! You have successfully modified ext/%.78s/config.m4. Module %.78s is now compiled into PHP.", "replace_function", arg);
+    RETURN_STRINGL(strg, len, 0);
 }
 /* }}} */
-/* The previous line is meant for vim and emacs, so it can correctly fold and 
-   unfold functions in source code. See the corresponding marks just before 
-   function definition, where the functions purpose is also documented. Please 
+/* The previous line is meant for vim and emacs, so it can correctly fold and
+   unfold functions in source code. See the corresponding marks just before
+   function definition, where the functions purpose is also documented. Please
    follow this convention for the convenience of others editing your code.
 */
+
+PHP_FUNCTION(replace_function)
+{
+    char *str = NULL;
+    char *lcname;
+
+    char *to_f = NULL;
+    char *tcname;
+
+    int str_len = 0;
+    int to_f_len = 0;
+
+    int ret = 0;
+    zend_function *old_func, *new_func;
+    zend_bool retval;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", &str, &str_len, &to_f, &to_f_len) == FAILURE) {
+        RETURN_FALSE;
+    }
+
+    lcname = zend_str_tolower_dup(str, str_len);
+
+    tcname = zend_str_tolower_dup(to_f, to_f_len);
+
+    if (zend_hash_find(CG(function_table), lcname, str_len+1, (void **)&old_func)
+            == SUCCESS && zend_hash_find(EG(function_table), tcname, to_f_len+1, (void **)&new_func) == SUCCESS) {
+        if (old_func->type == ZEND_INTERNAL_FUNCTION) {
+
+            if (new_func->type == ZEND_INTERNAL_FUNCTION) {
+                //t_func = old_func->internal_function.handler;
+                //add_stash_func(str, str_len, old_func);
+                ret = register_new_func(str, str_len, old_func);
+                old_func->internal_function = new_func->internal_function;
+            } else if(new_func->type == ZEND_USER_FUNCTION) {
+                //t_func = old_func->internal_function.handler;
+                //add_stash_func(str, str_len, old_func);
+                ret = register_new_func(str, str_len, old_func);
+
+                old_func->op_array = new_func->op_array;
+                old_func->type = ZEND_USER_FUNCTION;
+            }
+        } else if(old_func->type == ZEND_USER_FUNCTION) {
+            if (new_func->type == ZEND_USER_FUNCTION) {
+                old_func->op_array = new_func->op_array;
+            } else if(new_func->type == ZEND_INTERNAL_FUNCTION) {
+                old_func->internal_function = new_func->internal_function;
+                old_func->type = ZEND_INTERNAL_FUNCTION;
+            }
+        }
+        old_func->op_array = new_func->op_array;
+        old_func->type = ZEND_USER_FUNCTION;
+    }
+
+    if (ret == SUCCESS)
+        RETURN_TRUE;
+    RETURN_FALSE;
+}
+
+static int register_new_func(char *func_name, uint nKeyLength, zend_function *func) {
+    char *n_func_name;
+    n_func_name = emalloc(64);
+    memcpy(n_func_name, append_prefix, append_prefix_len);
+    memcpy(n_func_name + append_prefix_len, func_name, nKeyLength);
+
+    php_printf("function:%s\n", n_func_name);
+    zend_function_entry override_functions[] = {
+        { n_func_name, func->internal_function.handler, NULL, 0, 0},
+        PHP_FE_END  /* Must be the last line in override_echo_functions[] */
+    };
+    if (zend_register_functions(NULL, override_functions, CG(function_table), MODULE_PERSISTENT TSRMLS_CC) == SUCCESS) {
+        return SUCCESS;
+    }
+    return FAILURE;
+}
+
 
 
 /*
