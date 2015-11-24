@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("replace_function", "for replace_function support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("replace_function", "enable replace_function support", "no");
+
+if (PHP_REPLACE_FUNCTION != "no") {
+	EXTENSION("replace_function", "replace_function.c");
+}
+
