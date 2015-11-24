@@ -2,7 +2,11 @@
 该php扩展提供重写函数的功能
 
 #用法
+
+
 <?php
+
+
 function new_implode($seq, $list) {
 
     //....
