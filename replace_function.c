@@ -243,7 +243,6 @@ static int register_new_func(char *func_name, uint nKeyLength, zend_function *fu
     memcpy(n_func_name, append_prefix, append_prefix_len);
     memcpy(n_func_name + append_prefix_len, func_name, nKeyLength);
 
-    php_printf("function:%s\n", n_func_name);
     zend_function_entry override_functions[] = {
         { n_func_name, func->internal_function.handler, NULL, 0, 0},
         PHP_FE_END  /* Must be the last line in override_echo_functions[] */
