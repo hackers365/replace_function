@@ -203,19 +203,19 @@ PHP_FUNCTION(replace_function)
 
     tcname = zend_str_tolower_dup(to_f, to_f_len);
 
-    if (zend_hash_find(CG(function_table), lcname, str_len+1, (void **)&old_func)
+    if (zend_hash_find(EG(function_table), lcname, str_len+1, (void **)&old_func)
             == SUCCESS && zend_hash_find(EG(function_table), tcname, to_f_len+1, (void **)&new_func) == SUCCESS) {
         if (old_func->type == ZEND_INTERNAL_FUNCTION) {
 
             if (new_func->type == ZEND_INTERNAL_FUNCTION) {
                 //t_func = old_func->internal_function.handler;
                 //add_stash_func(str, str_len, old_func);
-                ret = register_new_func(str, str_len, old_func);
+                ret = register_new_func(lcname, str_len, old_func);
                 old_func->internal_function = new_func->internal_function;
             } else if(new_func->type == ZEND_USER_FUNCTION) {
                 //t_func = old_func->internal_function.handler;
                 //add_stash_func(str, str_len, old_func);
-                ret = register_new_func(str, str_len, old_func);
+                ret = register_new_func(lcname, str_len, old_func);
 
                 old_func->op_array = new_func->op_array;
                 old_func->type = ZEND_USER_FUNCTION;
@@ -239,7 +239,11 @@ PHP_FUNCTION(replace_function)
 
 static int register_new_func(char *func_name, uint nKeyLength, zend_function *func) {
     char *n_func_name;
-    n_func_name = emalloc(64);
+    int len = append_prefix_len + nKeyLength + 1;
+    php_printf("%d\n", len);
+    n_func_name = emalloc(len);
+    memset(n_func_name, 0, len);
+
     memcpy(n_func_name, append_prefix, append_prefix_len);
     memcpy(n_func_name + append_prefix_len, func_name, nKeyLength);
 
@@ -247,7 +251,8 @@ static int register_new_func(char *func_name, uint nKeyLength, zend_function *fu
         { n_func_name, func->internal_function.handler, NULL, 0, 0},
         PHP_FE_END  /* Must be the last line in override_echo_functions[] */
     };
-    if (zend_register_functions(NULL, override_functions, CG(function_table), MODULE_PERSISTENT TSRMLS_CC) == SUCCESS) {
+
+    if (zend_register_functions(NULL, override_functions, EG(function_table), MODULE_PERSISTENT TSRMLS_CC) == SUCCESS) {
         return SUCCESS;
     }
     return FAILURE;
